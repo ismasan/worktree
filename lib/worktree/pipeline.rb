@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'parametric'
 require 'worktree/context'
 
 module Worktree
@@ -51,9 +52,32 @@ module Worktree
       step pipe
     end
 
+    def input_schema(obj = nil, &block)
+      if obj
+        @input_schema = obj
+      elsif block_given?
+        @input_schema = Parametric::Schema.new(&block)
+      else
+        build_schema(@input_schema, :input_schema)
+      end
+    end
+
     private
 
     attr_reader :steps
+
+    def build_schema(this_schema, schema_name)
+      sh = this_schema || Parametric::Schema.new
+      pipelines.each do |p|
+        sh = sh.merge(p.public_send(schema_name))
+      end
+
+      sh
+    end
+
+    def pipelines
+      steps.find_all { |p| p.kind_of?(Pipeline) }
+    end
 
     def resolve_callable!(obj, block)
       obj ||= block

@@ -121,6 +121,31 @@ RSpec.describe Worktree::Pipeline do
     end
   end
 
+  describe '#input_schema' do
+    it 'builds top-level schema from schemas in pipeline tree' do
+      pipe = described_class.new do |p|
+        p.input_schema do
+          field(:sort).type(:string)
+        end
+
+        p.pipeline do |pp|
+          pp.input_schema do
+            field(:age).type(:integer)
+          end
+
+          pp.pipeline do |ppp|
+            ppp.input_schema do
+              field(:name).type(:string)
+            end
+          end
+        end
+      end
+
+      expect(pipe.input_schema).to be_a(Parametric::Schema)
+      expect(pipe.input_schema.fields.keys).to eq %i[sort age name]
+    end
+  end
+
   private
 
   def name_filter(exp)
