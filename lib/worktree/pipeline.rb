@@ -7,8 +7,11 @@ module Worktree
   class Pipeline
     def initialize(&config)
       @steps = []
+      @local_input_schema = nil
+
       if block_given?
         config.call(self)
+        input_schema # build
         @steps.freeze
         freeze
       end
@@ -54,11 +57,11 @@ module Worktree
 
     def input_schema(obj = nil, &block)
       if obj
-        @input_schema = obj
+        @local_input_schema = obj
       elsif block_given?
-        @input_schema = Parametric::Schema.new(&block)
+        @local_input_schema = Parametric::Schema.new(&block)
       else
-        build_schema(@input_schema, :input_schema)
+        @input_schema ||= build_schema(@local_input_schema, :input_schema)
       end
     end
 
