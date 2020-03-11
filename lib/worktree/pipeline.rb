@@ -30,21 +30,23 @@ module Worktree
     end
 
     def step(obj = nil, &block)
-      steps << (obj || block)
+      steps << resolve_callable!(obj, block)
       self
     end
 
     def filter(obj = nil, &block)
-      steps << Filter.new(obj || block)
+      steps << Filter.new(resolve_callable!(obj, block))
       self
     end
 
     def reduce(obj = nil, &block)
-      steps << ItemReducer.new(obj || block)
+      steps << ItemReducer.new(resolve_callable!(obj, block))
       self
     end
 
     def pipeline(pipe = nil, &block)
+      resolve_callable!(pipe, block)
+
       pipe = Pipeline.new(&block) unless pipe
       step pipe
     end
@@ -52,6 +54,14 @@ module Worktree
     private
 
     attr_reader :steps
+
+    def resolve_callable!(obj, block)
+      obj ||= block
+      raise ArgumentError, 'this method expects a callable object or a proc' if obj.nil?
+      raise ArgumentError, "argument #{obj.inspect} must respond to #call" unless obj.respond_to?(:call)
+
+      obj
+    end
 
     class Filter
       def initialize(callable)

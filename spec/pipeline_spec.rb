@@ -71,6 +71,14 @@ RSpec.describe Worktree::Pipeline do
   end
 
   describe '#reduce' do
+    it 'raises ArgumentError if no callable nor block passed' do
+      expect {
+        described_class.new do |p|
+          p.reduce
+        end
+      }.to raise_error(ArgumentError)
+    end
+
     it 'returns new set, filters out when callable resolves to nil' do
       pipe = described_class.new do |p|
         p.reduce do |user, ctx|
