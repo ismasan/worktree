@@ -31,10 +31,17 @@ module Worktree
 
     def step(obj = nil, &block)
       steps << (obj || block)
+      self
     end
 
     def filter(obj = nil, &block)
       steps << Filter.new(obj || block)
+      self
+    end
+
+    def reduce(obj = nil, &block)
+      steps << ItemReducer.new(obj || block)
+      self
     end
 
     private
@@ -48,6 +55,19 @@ module Worktree
 
       def call(ctx)
         ctx.set.find_all { |item| @callable.call(item, ctx) }
+      end
+    end
+
+    class ItemReducer
+      def initialize(callable)
+        @callable = callable
+      end
+
+      def call(ctx)
+        ctx.set.each.with_object([]) do |item, ret|
+          r = @callable.call(item, ctx)
+          ret << r unless r.nil?
+        end
       end
     end
   end

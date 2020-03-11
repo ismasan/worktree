@@ -70,6 +70,23 @@ RSpec.describe Worktree::Pipeline do
     end
   end
 
+  describe '#reduce' do
+    it 'returns new set, filters out when callable resolves to nil' do
+      pipe = described_class.new do |p|
+        p.reduce do |user, ctx|
+          if user.age > 40
+            User.new("Mr/s. #{user.name}", user.age)
+          else
+            nil
+          end
+        end
+      end
+
+      result = pipe.call(users)
+      expect(result.set.map(&:name)).to eq ['Mr/s. Ismael', 'Mr/s. Isabel']
+    end
+  end
+
   private
 
   def name_filter(exp)
