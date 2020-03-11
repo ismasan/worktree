@@ -44,12 +44,12 @@ RSpec.describe Worktree::Pipeline do
   end
 
   specify 'composing pipelines' do
-    ismaels_only = described_class.new do |p|
+    i_only = described_class.new do |p|
       p.step name_filter(/^I/)
     end
 
     pipe = described_class.new do |p|
-      p.step ismaels_only # we can use another pipeline as a step
+      p.step i_only # we can use another pipeline as a step
       p.step gte(:age, 40)
     end
 
@@ -84,6 +84,32 @@ RSpec.describe Worktree::Pipeline do
 
       result = pipe.call(users)
       expect(result.set.map(&:name)).to eq ['Mr/s. Ismael', 'Mr/s. Isabel']
+    end
+  end
+
+  describe '#pipeline' do
+    it 'adds child pipeline instance' do
+      i_only = described_class.new do |p|
+        p.step name_filter(/^I/)
+      end
+
+      pipe = described_class.new do |p|
+        p.pipeline i_only
+      end
+
+      result = pipe.call(users)
+      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+    end
+
+    it 'builds child pipeline from block' do
+      pipe = described_class.new do |p|
+        p.pipeline do |pp|
+          pp.step name_filter(/^I/)
+        end
+      end
+
+      result = pipe.call(users)
+      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
   end
 

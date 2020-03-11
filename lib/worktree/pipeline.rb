@@ -44,6 +44,11 @@ module Worktree
       self
     end
 
+    def pipeline(pipe = nil, &block)
+      pipe = Pipeline.new(&block) unless pipe
+      step pipe
+    end
+
     private
 
     attr_reader :steps
