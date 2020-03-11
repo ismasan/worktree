@@ -8,6 +8,7 @@ module Worktree
       @steps = []
       if block_given?
         config.call(self)
+        @steps.freeze
         freeze
       end
     end
