@@ -57,6 +57,19 @@ RSpec.describe Worktree::Pipeline do
     expect(result.set.map(&:name)).to eq %w(Ismael Isabel)
   end
 
+  describe '#filter' do
+    it 'returns a boolean to reduce one item at a time' do
+      pipe = described_class.new do |p|
+        p.filter do |user, ctx|
+          !!(user.name =~ /^I/)
+        end
+      end
+
+      result = pipe.call(users)
+      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+    end
+  end
+
   private
 
   def name_filter(exp)

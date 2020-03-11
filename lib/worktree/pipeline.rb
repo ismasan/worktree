@@ -33,8 +33,22 @@ module Worktree
       steps << (obj || block)
     end
 
+    def filter(obj = nil, &block)
+      steps << Filter.new(obj || block)
+    end
+
     private
 
     attr_reader :steps
+
+    class Filter
+      def initialize(callable)
+        @callable = callable
+      end
+
+      def call(ctx)
+        ctx.set.find_all { |item| @callable.call(item, ctx) }
+      end
+    end
   end
 end
