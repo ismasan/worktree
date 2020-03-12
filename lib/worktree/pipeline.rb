@@ -8,6 +8,7 @@ module Worktree
     def initialize(&config)
       @steps = []
       @local_input_schema = nil
+      @provided_key = nil
 
       if block_given?
         config.call(self)
@@ -29,6 +30,8 @@ module Worktree
           r = stp.call(ctx)
           if r.kind_of?(Context)
             ctx = r
+          elsif provided_key
+            ctx[provided_key] = r
           else
             ctx.set!(r)
           end
@@ -60,6 +63,10 @@ module Worktree
       step pipe
     end
 
+    def provides(key)
+      @provided_key = key
+    end
+
     def input_schema(obj = nil, &block)
       if obj
         @local_input_schema = obj
@@ -78,7 +85,7 @@ module Worktree
 
     private
 
-    attr_reader :steps
+    attr_reader :steps, :provided_key
 
     def build_schema(this_schema, schema_name)
       sh = this_schema || Parametric::Schema.new

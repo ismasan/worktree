@@ -21,6 +21,7 @@ module Worktree
 
     def []=(key, value)
       @context[key] = value
+      self
     end
 
     def [](key)

@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe Worktree::Pipeline do
-  User = Struct.new(:name, :age)
+  User = Struct.new(:name, :age, :age_diff)
 
   let(:users) do
     [
@@ -160,6 +160,33 @@ RSpec.describe Worktree::Pipeline do
     it 'bails out without running the pipeline' do
       result = pipe.run(users, input: {})
       expect(result.dataset.map(&:name)).to eq users.map(&:name)
+    end
+  end
+
+  describe '#provides' do
+    it 'sets computed data in custom keys in context' do
+      pipe = described_class.new do |p|
+        p.step name_filter(/^I/)
+
+        p.pipeline do |pp|
+          pp.provides :avg_age
+          pp.step do |ctx|
+            ctx.dataset.sum(&:age) / ctx.dataset.size.to_f
+          end
+        end
+
+        p.pipeline do |pp|
+          p.reduce do |user, ctx|
+            user.age_diff = user.age - ctx[:avg_age]
+            user
+          end
+        end
+      end
+
+      result = pipe.run(users)
+      expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
+      expect(result.dataset.map(&:age_diff)).to eq([0.0, 3.0, -3.0])
+      expect(result[:avg_age]).to eq((42 + 45 + 39) / 3.0)
     end
   end
 
