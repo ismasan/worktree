@@ -4,10 +4,14 @@ require 'worktree/context'
 
 module Worktree
   class Context
-    attr_reader :set, :input
+    attr_reader :set, :input, :errors
 
-    def initialize(set, context: {}, input: {})
-      @set, @context, @input = set, context, input
+    def initialize(set, context: {}, input: {}, errors: {})
+      @set, @context, @input, @errors = set, context, input, errors
+    end
+
+    def valid?
+      errors.none?
     end
 
     def set!(new_set)

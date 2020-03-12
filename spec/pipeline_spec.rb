@@ -20,7 +20,7 @@ RSpec.describe Worktree::Pipeline do
       p.step &name_filter(/^I/)
     end
 
-    result = pipe.call(users)
+    result = pipe.run(users)
     expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
   end
 
@@ -29,7 +29,7 @@ RSpec.describe Worktree::Pipeline do
       p.step name_filter(/^I/)
     end
 
-    result = pipe.call(users)
+    result = pipe.run(users)
     expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
   end
 
@@ -39,7 +39,7 @@ RSpec.describe Worktree::Pipeline do
       p.step gte(:age, 40)
     end
 
-    result = pipe.call(users)
+    result = pipe.run(users)
     expect(result.set.map(&:name)).to eq %w(Ismael Isabel)
   end
 
@@ -53,7 +53,7 @@ RSpec.describe Worktree::Pipeline do
       p.step gte(:age, 40)
     end
 
-    result = pipe.call(users)
+    result = pipe.run(users)
     expect(result.set.map(&:name)).to eq %w(Ismael Isabel)
   end
 
@@ -65,7 +65,7 @@ RSpec.describe Worktree::Pipeline do
         end
       end
 
-      result = pipe.call(users)
+      result = pipe.run(users)
       expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
   end
@@ -90,7 +90,7 @@ RSpec.describe Worktree::Pipeline do
         end
       end
 
-      result = pipe.call(users)
+      result = pipe.run(users)
       expect(result.set.map(&:name)).to eq ['Mr/s. Ismael', 'Mr/s. Isabel']
     end
   end
@@ -105,7 +105,7 @@ RSpec.describe Worktree::Pipeline do
         p.pipeline i_only
       end
 
-      result = pipe.call(users)
+      result = pipe.run(users)
       expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
 
@@ -116,33 +116,50 @@ RSpec.describe Worktree::Pipeline do
         end
       end
 
-      result = pipe.call(users)
+      result = pipe.run(users)
       expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
   end
 
   describe '#input_schema' do
-    it 'builds top-level schema from schemas in pipeline tree' do
-      pipe = described_class.new do |p|
+    let(:pipe) do
+      described_class.new do |p|
         p.input_schema do
           field(:sort).type(:string)
         end
 
+        p.pipeline sub_pipe
+      end
+    end
+
+    let(:sub_pipe) do
+      described_class.new do |p|
+        p.input_schema do
+          field(:age).type(:integer)
+        end
+
         p.pipeline do |pp|
           pp.input_schema do
-            field(:age).type(:integer)
-          end
-
-          pp.pipeline do |ppp|
-            ppp.input_schema do
-              field(:name).type(:string)
-            end
+            field(:name).type(:string).present
           end
         end
       end
+    end
 
+    it 'builds top-level schema from schemas in pipeline tree' do
       expect(pipe.input_schema).to be_a(Parametric::Schema)
       expect(pipe.input_schema.fields.keys).to eq %i[sort age name]
+    end
+
+    it 'validates input against top-level schema' do
+      result = pipe.run(users, input: {})
+      expect(result.valid?).to be false
+      expect(result.errors['$.name']).to eq(['is required'])
+    end
+
+    it 'bails out without running the pipeline' do
+      result = pipe.run(users, input: {})
+      expect(result.set.map(&:name)).to eq users.map(&:name)
     end
   end
 

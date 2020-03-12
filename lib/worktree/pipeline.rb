@@ -17,8 +17,15 @@ module Worktree
       end
     end
 
+    def run(dataset, input: {})
+      validated = input_schema.resolve(input)
+      ctx = Context.new(dataset, input: validated.output, errors: validated.errors)
+      return ctx unless validated.valid?
+
+      call(ctx)
+    end
+
     def call(ctx)
-      ctx = Context.new(ctx) unless ctx.kind_of?(Context)
       catch(:stop) do
         steps.each do |stp|
           r = stp.call(ctx)
