@@ -11,9 +11,7 @@ module Worktree
 
       if block_given?
         config.call(self)
-        input_schema # build
-        @steps.freeze
-        freeze
+        build!
       end
     end
 
@@ -70,6 +68,12 @@ module Worktree
       else
         @input_schema ||= build_schema(@local_input_schema, :input_schema)
       end
+    end
+
+    def build!
+      input_schema # eagerly build schema
+      @steps.freeze
+      freeze
     end
 
     private
