@@ -4,11 +4,15 @@ require 'parametric'
 require 'worktree/context'
 
 module Worktree
+  Error = Class.new(StandardError)
+  DependencyError = Class.new(Error)
+
   class Pipeline
     def initialize(&config)
       @steps = []
       @local_input_schema = nil
       @provided_key = nil
+      @expected_keys = []
 
       if block_given?
         config.call(self)
@@ -65,6 +69,12 @@ module Worktree
 
     def provides(key)
       @provided_key = key
+      self
+    end
+
+    def expects(*keys)
+      @expected_keys = keys
+      self
     end
 
     def input_schema(obj = nil, &block)
@@ -79,13 +89,30 @@ module Worktree
 
     def build!
       input_schema # eagerly build schema
+      validate_dependent_keys!
       @steps.freeze
       freeze
+    end
+
+    protected
+
+    attr_reader :expected_keys
+
+    def expects?(key)
+      (expected_keys.none? || expected_keys.include?(key)) && pipelines.all? { |p| p.expects?(key) }
     end
 
     private
 
     attr_reader :steps, :provided_key
+
+    def validate_dependent_keys!
+      return unless provided_key
+
+      if pipelines.any? { |p| !p.expects?(provided_key) }
+        raise DependencyError, "Child pipelines do not expect key :#{provided_key}"
+      end
+    end
 
     def build_schema(this_schema, schema_name)
       sh = this_schema || Parametric::Schema.new

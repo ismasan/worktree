@@ -190,6 +190,55 @@ RSpec.describe Worktree::Pipeline do
     end
   end
 
+  describe '#expects' do
+    it 'raises a useful exception if #provides and #expects do not match' do
+      expect {
+        described_class.new do |p|
+          p.provides :a_key
+          p.pipeline do |pp|
+            pp.provides :a_key
+          end
+          p.pipeline do |pp|
+            pp.expects :another_key
+          end
+        end
+      }.to raise_error(Worktree::DependencyError)
+
+      expect {
+        described_class.new do |p|
+          p.provides :a_key
+          p.pipeline do |pp|
+            pp.expects :a_key
+          end
+          p.pipeline do |pp|
+            pp.expects :a_key
+            pp.pipeline do |ppp|
+              ppp.expects :another_key
+            end
+          end
+        end
+      }.to raise_error(Worktree::DependencyError)
+    end
+
+    it 'is ok if all dependencies are met' do
+      expect {
+        described_class.new do |p|
+          p.provides :a_key
+          p.pipeline do |pp|
+            # no explicit expectation means this pipelines accepts any keys
+            pp.provides :a_key
+          end
+          p.pipeline do |pp|
+            pp.expects :a_key
+            pp.pipeline do |ppp|
+              ppp.expects :a_key, :another_key
+            end
+          end
+        end
+      }.not_to raise_error
+    end
+  end
+
   private
 
   def name_filter(exp)
