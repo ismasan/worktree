@@ -146,7 +146,7 @@ RSpec.describe Worktree::Pipeline do
       end
     end
 
-    it 'builds top-level schema from schemas in pipeline tree' do
+    it 'builds top-level schema from sub-schemas in pipeline tree' do
       expect(pipe.input_schema).to be_a(Parametric::Schema)
       expect(pipe.input_schema.fields.keys).to eq %i[sort age name]
     end
