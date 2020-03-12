@@ -4,10 +4,10 @@ require 'worktree/context'
 
 module Worktree
   class Context
-    attr_reader :set, :input, :errors
+    attr_reader :dataset, :input, :errors
 
-    def initialize(set, context: {}, input: {}, errors: {})
-      @set, @context, @input, @errors = set, context, input, errors
+    def initialize(dataset, context: {}, input: {}, errors: {})
+      @dataset, @context, @input, @errors = dataset, context, input, errors
     end
 
     def valid?
@@ -15,7 +15,7 @@ module Worktree
     end
 
     def set!(new_set)
-      @set = new_set
+      @dataset = new_set
       self
     end
 

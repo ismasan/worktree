@@ -107,7 +107,7 @@ module Worktree
       end
 
       def call(ctx)
-        ctx.set.find_all { |item| @callable.call(item, ctx) }
+        ctx.dataset.find_all { |item| @callable.call(item, ctx) }
       end
     end
 
@@ -117,7 +117,7 @@ module Worktree
       end
 
       def call(ctx)
-        ctx.set.each.with_object([]) do |item, ret|
+        ctx.dataset.each.with_object([]) do |item, ret|
           r = @callable.call(item, ctx)
           ret << r unless r.nil?
         end

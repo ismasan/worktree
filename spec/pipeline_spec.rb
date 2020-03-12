@@ -21,7 +21,7 @@ RSpec.describe Worktree::Pipeline do
     end
 
     result = pipe.run(users)
-    expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+    expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
   end
 
   specify 'building a pipeline with steps as callables' do
@@ -30,7 +30,7 @@ RSpec.describe Worktree::Pipeline do
     end
 
     result = pipe.run(users)
-    expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+    expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
   end
 
   specify 'multiple steps' do
@@ -40,7 +40,7 @@ RSpec.describe Worktree::Pipeline do
     end
 
     result = pipe.run(users)
-    expect(result.set.map(&:name)).to eq %w(Ismael Isabel)
+    expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel)
   end
 
   specify 'composing pipelines' do
@@ -54,7 +54,7 @@ RSpec.describe Worktree::Pipeline do
     end
 
     result = pipe.run(users)
-    expect(result.set.map(&:name)).to eq %w(Ismael Isabel)
+    expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel)
   end
 
   describe '#filter' do
@@ -66,7 +66,7 @@ RSpec.describe Worktree::Pipeline do
       end
 
       result = pipe.run(users)
-      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+      expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Worktree::Pipeline do
       }.to raise_error(ArgumentError)
     end
 
-    it 'returns new set, filters out when callable resolves to nil' do
+    it 'returns new dataset, filters out when callable resolves to nil' do
       pipe = described_class.new do |p|
         p.reduce do |user, ctx|
           if user.age > 40
@@ -91,7 +91,7 @@ RSpec.describe Worktree::Pipeline do
       end
 
       result = pipe.run(users)
-      expect(result.set.map(&:name)).to eq ['Mr/s. Ismael', 'Mr/s. Isabel']
+      expect(result.dataset.map(&:name)).to eq ['Mr/s. Ismael', 'Mr/s. Isabel']
     end
   end
 
@@ -106,7 +106,7 @@ RSpec.describe Worktree::Pipeline do
       end
 
       result = pipe.run(users)
-      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+      expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
 
     it 'builds child pipeline from block' do
@@ -117,7 +117,7 @@ RSpec.describe Worktree::Pipeline do
       end
 
       result = pipe.run(users)
-      expect(result.set.map(&:name)).to eq %w(Ismael Isabel Isambad)
+      expect(result.dataset.map(&:name)).to eq %w(Ismael Isabel Isambad)
     end
   end
 
@@ -159,7 +159,7 @@ RSpec.describe Worktree::Pipeline do
 
     it 'bails out without running the pipeline' do
       result = pipe.run(users, input: {})
-      expect(result.set.map(&:name)).to eq users.map(&:name)
+      expect(result.dataset.map(&:name)).to eq users.map(&:name)
     end
   end
 
@@ -167,13 +167,13 @@ RSpec.describe Worktree::Pipeline do
 
   def name_filter(exp)
     Proc.new do |ctx|
-      ctx.set.find_all { |user| user.name =~ exp }
+      ctx.dataset.find_all { |user| user.name =~ exp }
     end
   end
 
   def gte(field, value)
     Proc.new do |ctx|
-      ctx.set.find_all { |user| user[field] > value }
+      ctx.dataset.find_all { |user| user[field] > value }
     end
   end
 end
