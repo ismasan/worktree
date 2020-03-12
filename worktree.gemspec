@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Ismael Celis"]
   spec.email         = ["ismaelct@gmail.com"]
 
-  spec.summary       = %q{Build composable data pipelines.}
+  spec.summary       = %q{Composable data pipelines.}
   spec.homepage      = "https://github.com/ismasan/worktree"
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
