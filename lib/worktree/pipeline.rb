@@ -12,7 +12,7 @@ module Worktree
       @steps = []
       @local_input_schema = nil
       @provided_key = nil
-      @expected_keys = []
+      @local_expected_keys = []
 
       if block_given?
         config.call(self)
@@ -73,7 +73,7 @@ module Worktree
     end
 
     def expects(*keys)
-      @expected_keys = keys
+      @local_expected_keys = keys
       self
     end
 
@@ -89,13 +89,14 @@ module Worktree
 
     def build!
       input_schema # eagerly build schema
+      expected_keys
       validate_dependent_keys!
       @steps.freeze
       freeze
     end
 
     def expected_keys
-      (@expected_keys + pipelines.flat_map(&:expected_keys)).uniq
+      @expected_keys ||= (@local_expected_keys + pipelines.flat_map(&:expected_keys)).uniq
     end
 
     protected
@@ -105,8 +106,7 @@ module Worktree
     def satisfied_by?(provided_keys)
       return true if provided_keys.none?
 
-      keys = expected_keys
-      keys.none? || (keys - provided_keys).none?
+      expected_keys.none? || (expected_keys - provided_keys).none?
     end
 
     private
@@ -132,7 +132,7 @@ module Worktree
     end
 
     def pipelines
-      steps.find_all { |p| p.kind_of?(Pipeline) }
+      @pipelines ||= steps.find_all { |p| p.kind_of?(Pipeline) }
     end
 
     def resolve_callable!(obj, block)
