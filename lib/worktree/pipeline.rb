@@ -94,23 +94,31 @@ module Worktree
       freeze
     end
 
+    def expected_keys
+      (@expected_keys + pipelines.flat_map(&:expected_keys)).uniq
+    end
+
     protected
 
-    attr_reader :expected_keys
+    attr_reader :provided_key
 
-    def expects?(key)
-      (expected_keys.none? || expected_keys.include?(key)) && pipelines.all? { |p| p.expects?(key) }
+    def satisfied_by?(provided_keys)
+      return true if provided_keys.none?
+
+      keys = expected_keys
+      keys.none? || (keys - provided_keys).none?
     end
 
     private
 
-    attr_reader :steps, :provided_key
+    attr_reader :steps
 
     def validate_dependent_keys!
-      return unless provided_key
-
-      if pipelines.any? { |p| !p.expects?(provided_key) }
-        raise DependencyError, "Child pipelines do not expect key :#{provided_key}"
+      pipelines.each.with_object([]) do |pipe, provided_keys|
+        if !pipe.satisfied_by?(provided_keys)
+          raise DependencyError, "Child pipeline #{pipe} expects data keys #{pipe.expected_keys.join(', ')}, but is only given #{provided_keys.join(', ')}"
+        end
+        provided_keys << pipe.provided_key
       end
     end
 

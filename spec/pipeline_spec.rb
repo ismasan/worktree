@@ -190,11 +190,26 @@ RSpec.describe Worktree::Pipeline do
     end
   end
 
+  describe '#expected_keys' do
+    it 'list own keys and those of children' do
+      pipe = described_class.new do |p|
+        p.expects :key_one
+        p.pipeline do |pp|
+          pp.expects :key_one, :key_two
+        end
+        p.pipeline do |pp|
+          pp.expects :key_three
+        end
+      end
+
+      expect(pipe.expected_keys).to eq %i[key_one key_two key_three]
+    end
+  end
+
   describe '#expects' do
     it 'raises a useful exception if #provides and #expects do not match' do
       expect {
         described_class.new do |p|
-          p.provides :a_key
           p.pipeline do |pp|
             pp.provides :a_key
           end
@@ -206,9 +221,8 @@ RSpec.describe Worktree::Pipeline do
 
       expect {
         described_class.new do |p|
-          p.provides :a_key
           p.pipeline do |pp|
-            pp.expects :a_key
+            pp.provides :a_key
           end
           p.pipeline do |pp|
             pp.expects :a_key
@@ -218,20 +232,45 @@ RSpec.describe Worktree::Pipeline do
           end
         end
       }.to raise_error(Worktree::DependencyError)
+
+      expect {
+        described_class.new do |p|
+          p.pipeline do |pp|
+            pp.provides :a_key
+          end
+          p.pipeline do |pp|
+            pp.pipeline do |ppp|
+              ppp.expects :a_key, :another_key
+            end
+          end
+        end
+      }.to raise_error(Worktree::DependencyError)
     end
 
     it 'is ok if all dependencies are met' do
       expect {
         described_class.new do |p|
-          p.provides :a_key
           p.pipeline do |pp|
-            # no explicit expectation means this pipelines accepts any keys
             pp.provides :a_key
           end
           p.pipeline do |pp|
             pp.expects :a_key
             pp.pipeline do |ppp|
-              ppp.expects :a_key, :another_key
+              ppp.expects :a_key
+            end
+          end
+        end
+      }.not_to raise_error
+
+      expect {
+        described_class.new do |p|
+          p.pipeline do |pp|
+            pp.provides :a_key
+          end
+          p.pipeline do |pp|
+            # no expectation at this level
+            pp.pipeline do |ppp|
+              ppp.expects :a_key
             end
           end
         end
