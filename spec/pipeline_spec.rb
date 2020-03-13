@@ -206,6 +206,22 @@ RSpec.describe Worktree::Pipeline do
     end
   end
 
+  describe '#provided_keys' do
+    it 'list own key and those of children' do
+      pipe = described_class.new do |p|
+        p.provides :key_one
+        p.pipeline do |pp|
+          pp.provides :key_two
+        end
+        p.pipeline do |pp|
+          pp.provides :key_three
+        end
+      end
+
+      expect(pipe.provided_keys).to eq %i[key_one key_two key_three]
+    end
+  end
+
   describe '#expects' do
     it 'raises a useful exception if #provides and #expects do not match' do
       expect {
@@ -269,6 +285,23 @@ RSpec.describe Worktree::Pipeline do
           end
           p.pipeline do |pp|
             # no expectation at this level
+            pp.pipeline do |ppp|
+              ppp.expects :a_key
+            end
+          end
+        end
+      }.not_to raise_error
+
+      expect {
+        described_class.new do |p|
+          p.pipeline do |pp|
+            pp.provides :some_other_key
+            pp.pipeline do |ppp|
+              ppp.provides :a_key
+            end
+          end
+          p.pipeline do |pp|
+            pp.expects :a_key
             pp.pipeline do |ppp|
               ppp.expects :a_key
             end

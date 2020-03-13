@@ -90,6 +90,7 @@ module Worktree
     def build!
       input_schema # eagerly build schema
       expected_keys
+      provided_keys
       validate_dependent_keys!
       @steps.freeze
       freeze
@@ -97,6 +98,10 @@ module Worktree
 
     def expected_keys
       @expected_keys ||= (@local_expected_keys + pipelines.flat_map(&:expected_keys)).uniq
+    end
+
+    def provided_keys
+      @provided_keys ||= ([@provided_key].compact + pipelines.flat_map(&:provided_keys)).uniq
     end
 
     protected
@@ -114,11 +119,11 @@ module Worktree
     attr_reader :steps
 
     def validate_dependent_keys!
-      pipelines.each.with_object([]) do |pipe, provided_keys|
-        if !pipe.satisfied_by?(provided_keys)
-          raise DependencyError, "Child pipeline #{pipe} expects data keys #{pipe.expected_keys.join(', ')}, but is only given #{provided_keys.join(', ')}"
+      pipelines.each.reduce([]) do |pr_keys, pipe|
+        if !pipe.satisfied_by?(pr_keys)
+          raise DependencyError, "Child pipeline #{pipe} expects data keys #{pipe.expected_keys.join(', ')}, but is only given #{pr_keys.join(', ')}"
         end
-        provided_keys << pipe.provided_key
+        (pr_keys + pipe.provided_keys).uniq
       end
     end
 
