@@ -12,7 +12,6 @@ module Worktree
       @steps = []
       @local_input_schema = nil
       @provided_key = nil
-      @local_expected_keys = []
 
       if block_given?
         config.call(self)
@@ -45,35 +44,31 @@ module Worktree
       ctx
     end
 
-    def step(obj = nil, &block)
-      steps << resolve_callable!(obj, block)
+    def step(*args, &block)
+      steps << build_callable(args, block)
       self
     end
 
-    def filter(obj = nil, &block)
-      steps << Filter.new(resolve_callable!(obj, block))
+    def filter(*args, &block)
+      steps << Filter.new(build_callable(args, block))
       self
     end
 
-    def reduce(obj = nil, &block)
-      steps << ItemReducer.new(resolve_callable!(obj, block))
+    def reduce(*args, &block)
+      steps << ItemReducer.new(build_callable(args, block))
       self
     end
 
     def pipeline(pipe = nil, &block)
-      resolve_callable!(pipe, block)
+      assert_callable!(pipe, block)
 
       pipe = Pipeline.new(&block) unless pipe
-      step pipe
+      steps << pipe
+      self
     end
 
     def provides(key)
       @provided_key = key
-      self
-    end
-
-    def expects(*keys)
-      @local_expected_keys = keys
       self
     end
 
@@ -97,7 +92,7 @@ module Worktree
     end
 
     def expected_keys
-      @expected_keys ||= (@local_expected_keys + pipelines.flat_map(&:expected_keys)).uniq
+      @expected_keys ||= steps.flat_map(&:expected_keys).uniq
     end
 
     def provided_keys
@@ -140,7 +135,14 @@ module Worktree
       @pipelines ||= steps.find_all { |p| p.kind_of?(Pipeline) }
     end
 
-    def resolve_callable!(obj, block)
+    def build_callable(args, block)
+      options = args.last.is_a?(Hash) ? args.pop : {}
+      obj = assert_callable!(args.first, block)
+      obj = CallableWithExpectedKeys.new(obj, options.fetch(:expects, [])) unless obj.respond_to?(:expected_keys)
+      obj
+    end
+
+    def assert_callable!(obj, block)
       obj ||= block
       raise ArgumentError, 'this method expects a callable object or a proc' if obj.nil?
       raise ArgumentError, "argument #{obj.inspect} must respond to #call" unless obj.respond_to?(:call)
@@ -148,9 +150,22 @@ module Worktree
       obj
     end
 
+    class CallableWithExpectedKeys < SimpleDelegator
+      attr_reader :expected_keys
+
+      def initialize(callable, expected_keys)
+        super callable
+        @expected_keys = Array(expected_keys)
+      end
+    end
+
     class Filter
       def initialize(callable)
         @callable = callable
+      end
+
+      def expected_keys
+        @callable.expected_keys
       end
 
       def call(ctx)
@@ -161,6 +176,10 @@ module Worktree
     class ItemReducer
       def initialize(callable)
         @callable = callable
+      end
+
+      def expected_keys
+        @callable.expected_keys
       end
 
       def call(ctx)

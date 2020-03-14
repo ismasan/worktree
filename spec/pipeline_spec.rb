@@ -193,12 +193,12 @@ RSpec.describe Worktree::Pipeline do
   describe '#expected_keys' do
     it 'list own keys and those of children' do
       pipe = described_class.new do |p|
-        p.expects :key_one
+        p.step Proc.new{}, expects: :key_one
         p.pipeline do |pp|
-          pp.expects :key_one, :key_two
+          pp.step(expects: [:key_one, :key_two]){ |_| }
         end
         p.pipeline do |pp|
-          pp.expects :key_three
+          pp.filter(expects: :key_three) { |_, _| }
         end
       end
 
@@ -230,7 +230,7 @@ RSpec.describe Worktree::Pipeline do
             pp.provides :a_key
           end
           p.pipeline do |pp|
-            pp.expects :another_key
+            pp.step(Proc.new {}, expects: :another_key)
           end
         end
       }.to raise_error(Worktree::DependencyError)
@@ -241,9 +241,9 @@ RSpec.describe Worktree::Pipeline do
             pp.provides :a_key
           end
           p.pipeline do |pp|
-            pp.expects :a_key
+            pp.step(expects: :a_key) { |_| }
             pp.pipeline do |ppp|
-              ppp.expects :another_key
+              ppp.step(expects: :another_key) { |_| }
             end
           end
         end
@@ -256,7 +256,7 @@ RSpec.describe Worktree::Pipeline do
           end
           p.pipeline do |pp|
             pp.pipeline do |ppp|
-              ppp.expects :a_key, :another_key
+              ppp.step(expects: [:a_key, :another_key]) { |_| }
             end
           end
         end
@@ -270,9 +270,9 @@ RSpec.describe Worktree::Pipeline do
             pp.provides :a_key
           end
           p.pipeline do |pp|
-            pp.expects :a_key
+            pp.step(expects: :a_key) { |_| }
             pp.pipeline do |ppp|
-              ppp.expects :a_key
+              ppp.step(expects: :a_key) { |_| }
             end
           end
         end
@@ -286,7 +286,7 @@ RSpec.describe Worktree::Pipeline do
           p.pipeline do |pp|
             # no expectation at this level
             pp.pipeline do |ppp|
-              ppp.expects :a_key
+              ppp.step(expects: :a_key) { |_| }
             end
           end
         end
@@ -301,9 +301,9 @@ RSpec.describe Worktree::Pipeline do
             end
           end
           p.pipeline do |pp|
-            pp.expects :a_key
+            pp.step(expects: :a_key) { |_| }
             pp.pipeline do |ppp|
-              ppp.expects :a_key
+              ppp.step(expects: :a_key) { |_| }
             end
           end
         end
