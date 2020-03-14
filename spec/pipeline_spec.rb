@@ -229,6 +229,16 @@ RSpec.describe Worktree::Pipeline do
           p.pipeline do |pp|
             pp.provides :a_key
           end
+
+          p.step(Proc.new {}, expects: :another_key)
+        end
+      }.to raise_error(Worktree::DependencyError)
+
+      expect {
+        described_class.new do |p|
+          p.pipeline do |pp|
+            pp.provides :a_key
+          end
           p.pipeline do |pp|
             pp.step(Proc.new {}, expects: :another_key)
           end
@@ -264,6 +274,22 @@ RSpec.describe Worktree::Pipeline do
     end
 
     it 'is ok if all dependencies are met' do
+      expect {
+        described_class.new do |p|
+          p.pipeline do |pp|
+            pp.provides :a_key
+          end
+
+          p.step(expects: :a_key) { |_| }
+
+          p.pipeline do |pp|
+            pp.pipeline do |ppp|
+              ppp.step(expects: :a_key) { |_| }
+            end
+          end
+        end
+      }.not_to raise_error
+
       expect {
         described_class.new do |p|
           p.pipeline do |pp|

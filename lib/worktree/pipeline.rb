@@ -103,8 +103,8 @@ module Worktree
 
     attr_reader :provided_key
 
-    def satisfied_by?(provided_keys)
-      provided_keys.none? || expected_keys.none? || (expected_keys - provided_keys).none?
+    def satisfied_by?(provided_keys, step)
+      provided_keys.none? || step.expected_keys.none? || (step.expected_keys - provided_keys).none?
     end
 
     private
@@ -112,11 +112,11 @@ module Worktree
     attr_reader :steps
 
     def validate_dependent_keys!
-      pipelines.each.reduce([]) do |pr_keys, pipe|
-        if !pipe.satisfied_by?(pr_keys)
-          raise DependencyError, "Child pipeline #{pipe} expects data keys #{pipe.expected_keys.join(', ')}, but is only given #{pr_keys.join(', ')}"
+      steps.each.reduce([]) do |pr_keys, stp|
+        if !satisfied_by?(pr_keys, stp)
+          raise DependencyError, "Child step #{stp} expects data keys #{stp.expected_keys.join(', ')}, but is only given #{pr_keys.join(', ')}"
         end
-        (pr_keys + pipe.provided_keys).uniq
+        (pr_keys + stp.provided_keys).uniq
       end
     end
 
@@ -137,6 +137,7 @@ module Worktree
       options = args.last.is_a?(Hash) ? args.pop : {}
       obj = assert_callable!(args.first, block)
       obj = CallableWithExpectedKeys.new(obj, options.fetch(:expects, [])) unless obj.respond_to?(:expected_keys)
+      obj = CallableWithProvidedKeys.new(obj) unless obj.respond_to?(:provided_keys)
       obj
     end
 
@@ -157,14 +158,28 @@ module Worktree
       end
     end
 
-    class Filter
+    class CallableWithProvidedKeys < SimpleDelegator
+      def provided_keys
+        []
+      end
+    end
+
+    module CallableSugar
       def initialize(callable)
         @callable = callable
+      end
+
+      def provided_keys
+        @callable.provided_keys
       end
 
       def expected_keys
         @callable.expected_keys
       end
+    end
+
+    class Filter
+      include CallableSugar
 
       def call(ctx)
         ctx.dataset.find_all { |item| @callable.call(item, ctx) }
@@ -172,13 +187,7 @@ module Worktree
     end
 
     class ItemReducer
-      def initialize(callable)
-        @callable = callable
-      end
-
-      def expected_keys
-        @callable.expected_keys
-      end
+      include CallableSugar
 
       def call(ctx)
         ctx.dataset.each.with_object([]) do |item, ret|
