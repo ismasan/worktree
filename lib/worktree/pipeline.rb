@@ -164,7 +164,7 @@ module Worktree
       end
     end
 
-    module CallableSugar
+    module CallableWrapper
       def initialize(callable)
         @callable = callable
       end
@@ -176,22 +176,26 @@ module Worktree
       def expected_keys
         @callable.expected_keys
       end
+
+      private
+
+      attr_reader :callable
     end
 
     class Filter
-      include CallableSugar
+      include CallableWrapper
 
       def call(ctx)
-        ctx.dataset.find_all { |item| @callable.call(item, ctx) }
+        ctx.dataset.find_all { |item| callable.call(item, ctx) }
       end
     end
 
     class ItemReducer
-      include CallableSugar
+      include CallableWrapper
 
       def call(ctx)
         ctx.dataset.each.with_object([]) do |item, ret|
-          r = @callable.call(item, ctx)
+          r = callable.call(item, ctx)
           ret << r unless r.nil?
         end
       end
