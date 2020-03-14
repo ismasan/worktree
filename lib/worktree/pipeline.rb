@@ -133,6 +133,10 @@ module Worktree
       @pipelines ||= steps.find_all { |p| p.kind_of?(Pipeline) }
     end
 
+    # Extract a callable object from arguments
+    # and adapt it to implement the internal callable interface, if necessary.
+    # This is so that objects in the #steps list have a uniform interface and can be composed together,
+    # while allowing users to provide blocks, Procs or incomplete instances.
     def build_callable(args, block)
       options = args.last.is_a?(Hash) ? args.pop : {}
       obj = assert_callable!(args.first, block)
