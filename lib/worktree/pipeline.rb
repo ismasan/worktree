@@ -104,9 +104,7 @@ module Worktree
     attr_reader :provided_key
 
     def satisfied_by?(provided_keys)
-      return true if provided_keys.none?
-
-      expected_keys.none? || (expected_keys - provided_keys).none?
+      provided_keys.none? || expected_keys.none? || (expected_keys - provided_keys).none?
     end
 
     private
