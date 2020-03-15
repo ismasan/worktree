@@ -97,20 +97,16 @@ module Worktree
     end
 
     def provided_keys
-      @provided_keys ||= ([@provided_key].compact + pipelines.flat_map(&:provided_keys)).uniq
-    end
-
-    protected
-
-    attr_reader :provided_key
-
-    def satisfied_by?(provided_keys, step)
-      provided_keys.none? || step.expected_keys.none? || (step.expected_keys - provided_keys).none?
+      @provided_keys ||= ([provided_key].compact + pipelines.flat_map(&:provided_keys)).uniq
     end
 
     private
 
-    attr_reader :steps
+    attr_reader :steps, :provided_key
+
+    def satisfied_by?(provided_keys, step)
+      provided_keys.none? || step.expected_keys.none? || (step.expected_keys - provided_keys).none?
+    end
 
     def validate_dependent_keys!
       steps.each.reduce([]) do |pr_keys, stp|
