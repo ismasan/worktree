@@ -215,10 +215,13 @@ RSpec.describe Worktree::Pipeline do
         end
         p.pipeline do |pp|
           pp.provides :key_three
+          pp.pipeline do |ppp|
+            ppp.provides :key_four
+          end
         end
       end
 
-      expect(pipe.provided_keys).to eq %i[key_one key_two key_three]
+      expect(pipe.provided_keys).to eq %i[key_one key_two key_three key_four]
     end
   end
 
