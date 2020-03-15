@@ -83,7 +83,8 @@ module Worktree
     end
 
     def build!
-      input_schema # eagerly build schema
+      # Eagerly build things before freezing
+      input_schema
       expected_keys
       provided_keys
       validate_dependent_keys!
