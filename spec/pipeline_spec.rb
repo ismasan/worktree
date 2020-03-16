@@ -188,6 +188,31 @@ RSpec.describe Worktree::Pipeline do
       expect(result.dataset.map(&:age_diff)).to eq([0.0, 3.0, -3.0])
       expect(result[:avg_age]).to eq((42 + 45 + 39) / 3.0)
     end
+
+    it 'puts results of nested pipelines into provided key' do
+      pipe = described_class.new do |p|
+        p.provides :a_key
+        p.step name_filter(/^I/)
+        p.pipeline do |pp|
+          pp.reduce do |user, _|
+            User.new("Mr/Mrs. #{user.name}", user.age, 0)
+          end
+          pp.pipeline do |ppp|
+            ppp.provides :something_else
+            ppp.step do |ctx|
+              'foobar'
+            end
+          end
+        end
+      end
+
+      result = pipe.run(users)
+      expect(result[:a_key].map(&:name)).to eq ['Mr/Mrs. Ismael', 'Mr/Mrs. Isabel', 'Mr/Mrs. Isambad']
+      # does not touch original dataset
+      expect(result.dataset.size).to eq users.size
+      # preserves keys added by nested pipelines
+      expect(result[:something_else]).to eq 'foobar'
+    end
   end
 
   describe '#expected_keys' do

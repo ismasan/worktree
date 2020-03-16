@@ -28,20 +28,19 @@ module Worktree
     end
 
     def call(ctx)
+      run_ctx = ctx.copy(ctx.dataset)
       catch(:stop) do
         steps.each do |stp|
-          r = stp.call(ctx)
-          if r.kind_of?(Context)
-            ctx = r
-          elsif provided_key
-            ctx[provided_key] = r
-          else
-            ctx.set!(r)
-          end
+          r = stp.call(run_ctx)
+          run_ctx = r.kind_of?(Context) ? r : run_ctx.copy(r)
         end
       end
 
-      ctx
+      if provided_key
+        ctx.copy(ctx.dataset, run_ctx.to_h.merge(provided_key => run_ctx.dataset))
+      else
+        run_ctx
+      end
     end
 
     def step(*args, &block)
@@ -65,6 +64,11 @@ module Worktree
       pipe = Pipeline.new(&block) unless pipe
       steps << pipe
       self
+    end
+
+    def map_all(obj = nil, &block)
+      callable = assert_callable!(obj, block)
+      mappers << callable
     end
 
     def provides(key)
